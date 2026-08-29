@@ -45,7 +45,11 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 └─────────────────┘
 ```
 
----
+## Visuals 
+
+<p align="center">
+  <img src="" width="95%" alt="XYZ Insta Login Screen">
+</p>
 
 ## 🏗️ Compiler Phases
 
