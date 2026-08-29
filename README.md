@@ -49,6 +49,12 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 
 <p align="center">
   <img src="" width="95%" alt="XYZ Insta Login Screen">
+</p> 
+
+## Results and outputs 
+
+<p align="center">
+  <img src="" width="95%" alt="XYZ Insta Login Screen">
 </p>
 
 ## 🏗️ Compiler Phases
