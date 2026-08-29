@@ -53,12 +53,14 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 
 ## Results and outputs 
 
+## 1.
 <p align="center">
   <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029127/Screenshot_2026-08-30_001509.png" width="95%" alt="XYZ Insta Login Screen">
 </p>
 
+## 2.
 <p align="center">
-  <img src="" width="95%" alt="XYZ Insta Login Screen">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029139/Screenshot_2026-08-30_001456.png" width="95%" alt="XYZ Insta Login Screen">
 </p>
 
 ## 🏗️ Compiler Phases
