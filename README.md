@@ -45,7 +45,27 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 └─────────────────┘
 ```
 
+<<<<<<< HEAD
 ---
+=======
+## Visuals 
+
+<p align="center">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029072/Screenshot_2026-08-30_001419.png" width="95%" alt="XYZ Insta Login Screen">
+</p> 
+
+## Results and outputs 
+
+## 1.
+<p align="center">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029127/Screenshot_2026-08-30_001509.png" width="95%" alt="XYZ Insta Login Screen">
+</p>
+
+## 2.
+<p align="center">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029139/Screenshot_2026-08-30_001456.png" width="95%" alt="XYZ Insta Login Screen">
+</p>
+>>>>>>> e6bbe5b3df1287a036e98ff6b73d4275cb61649b
 
 ## 🏗️ Compiler Phases
 
