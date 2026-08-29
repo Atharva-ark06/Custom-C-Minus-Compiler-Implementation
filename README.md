@@ -54,7 +54,7 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 ## Results and outputs 
 
 <p align="center">
-  <img src="" width="95%" alt="XYZ Insta Login Screen">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029127/Screenshot_2026-08-30_001509.png" width="95%" alt="XYZ Insta Login Screen">
 </p>
 
 <p align="center">
