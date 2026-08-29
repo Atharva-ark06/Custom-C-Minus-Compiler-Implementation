@@ -48,7 +48,7 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 ## Visuals 
 
 <p align="center">
-  <img src="" width="95%" alt="XYZ Insta Login Screen">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029072/Screenshot_2026-08-30_001419.png" width="95%" alt="XYZ Insta Login Screen">
 </p> 
 
 ## Results and outputs 
