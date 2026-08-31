@@ -1,4 +1,4 @@
-# 🚀 Multi-Phase Compiler
+# 🚀 Multi-Phase Compiler ATC-Assignment-02
 
 A functional, multi-phase compiler designed and implemented from scratch to demonstrate the core principles of compiler construction. The project translates a custom high-level language (or a defined subset of C/Java) into **machine-independent intermediate code**, while enforcing lexical, syntactic, and semantic rules.
 
