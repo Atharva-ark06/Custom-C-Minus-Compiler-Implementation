@@ -4,7 +4,7 @@ A functional, multi-phase compiler designed and implemented from scratch to demo
 
 --- 
 
-## 📌 Project Overview
+## 📌 Project Overview  
 
 The compiler follows a traditional compiler architecture consisting of multiple phases. Each phase processes the output of the previous stage and performs a specific transformation or validation.
 
