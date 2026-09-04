@@ -3,7 +3,7 @@
 A functional, multi-phase compiler designed and implemented from scratch to demonstrate the core principles of compiler construction. The project translates a custom high-level language (or a defined subset of C/Java) into **machine-independent intermediate code**, while enforcing lexical, syntactic, and semantic rules.
 
 --- 
- 
+  
 ## 📌 Project Overview  
 
 The compiler follows a traditional compiler architecture consisting of multiple phases. Each phase processes the output of the previous stage and performs a specific transformation or validation.
