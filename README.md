@@ -18,7 +18,7 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 │ Lexer / Scanner │  ← Regex / Flex
 └────────┬────────┘
          │ Tokens
-         ▼
+         ▼ 
 ┌─────────────────┐
 │ Parser          │  ← CFG / Bison
 └────────┬────────┘
