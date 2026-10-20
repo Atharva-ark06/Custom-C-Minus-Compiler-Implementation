@@ -44,10 +44,7 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 │ Representation  │
 └─────────────────┘
 ```
-```
-<<<<<<< HEAD
-```
-=======
+
 ## Visuals 
 
 <p align="center">
