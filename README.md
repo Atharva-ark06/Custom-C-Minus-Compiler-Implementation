@@ -65,7 +65,7 @@ The compiler follows a traditional compiler architecture consisting of multiple 
 <p align="center">
   <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029139/Screenshot_2026-08-30_001456.png" width="95%" alt="XYZ Insta Login Screen">
 </p>
->>>>>>> e6bbe5b3df1287a036e98ff6b73d4275cb61649b
+
 
 ## 🏗️ Compiler Phases
 
