@@ -1,0 +1,12 @@
+{
+  "name": "c-minus-structural-visualizer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-based C program structural visualizer and educational compiler-core tests",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
