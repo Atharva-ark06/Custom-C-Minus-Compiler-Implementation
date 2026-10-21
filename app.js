@@ -169,7 +169,7 @@ const C_KEYWORDS = new Set([
   'int','float','double','char','void','if','else','while',
   'for','do','return','break','continue','switch','case',
   'default','struct','typedef','const','static','extern',
-  'unsigned','signed','long','short','sizeof','printf','scanf'
+  'unsigned','signed','long','short','sizeof'
 ]);
 
 /** TOKEN TYPES */
@@ -180,6 +180,7 @@ const T = {
   OPERATOR  : 'Operator',
   DELIMITER : 'Delimiter',
   SYMBOL    : 'Symbol',
+  ERROR     : 'Error',
 };
 
 /**
@@ -187,92 +188,121 @@ const T = {
  * Implements a DFA-style scanner.
  */
 function tokenize(code) {
+  const source = String(code ?? '');
   const tokens = [];
-  let i = 0, num = 1;
+  let i = 0;
 
-  while (i < code.length) {
-    const ch = code[i];
+  function emit(start, end, value, type, error) {
+    const prefix = source.slice(0, start);
+    const lastNewline = prefix.lastIndexOf('\n');
+    const token = {
+      num: tokens.length + 1,
+      value,
+      type,
+      start,
+      end,
+      line: (prefix.match(/\n/g) || []).length + 1,
+      column: start - lastNewline,
+    };
+    if (error) token.error = error;
+    tokens.push(token);
+  }
 
-    // Skip whitespace
+  const operators = [
+    '>>=', '<<=', '...', '++', '--', '==', '!=', '<=', '>=',
+    '&&', '||', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=',
+    '<<', '>>', '->'
+  ];
+
+  while (i < source.length) {
+    const ch = source[i];
+
     if (/\s/.test(ch)) { i++; continue; }
 
-    // Single-line comments
-    if (ch === '/' && code[i+1] === '/') {
-      while (i < code.length && code[i] !== '\n') i++;
-      continue;
-    }
-
-    // Block comments
-    if (ch === '/' && code[i+1] === '*') {
+    // Comments are ignored, but an unterminated block comment is reported.
+    if (ch === '/' && source[i + 1] === '/') {
       i += 2;
-      while (i < code.length && !(code[i] === '*' && code[i+1] === '/')) i++;
-      i += 2;
+      while (i < source.length && source[i] !== '\n') i++;
+      continue;
+    }
+    if (ch === '/' && source[i + 1] === '*') {
+      const commentStart = i;
+      const close = source.indexOf('*/', i + 2);
+      if (close === -1) {
+        emit(commentStart, source.length, source.slice(commentStart), T.ERROR,
+          'Unterminated block comment');
+        break;
+      }
+      i = close + 2;
       continue;
     }
 
-    // String literals
-    if (ch === '"') {
-      let val = '"';
+    // Quoted literals honour backslash escapes and never consume past EOF silently.
+    if (ch === '"' || ch === "'") {
+      const literalStart = i;
+      const quote = ch;
       i++;
-      while (i < code.length && code[i] !== '"') val += code[i++];
-      val += '"'; i++;
-      tokens.push({ num: num++, value: val, type: T.LITERAL });
+      let closed = false;
+      while (i < source.length) {
+        if (source[i] === '\\\\') {
+          i += Math.min(2, source.length - i);
+          continue;
+        }
+        if (source[i] === quote) {
+          i++;
+          closed = true;
+          break;
+        }
+        i++;
+      }
+      const value = source.slice(literalStart, i);
+      emit(literalStart, i, value, closed ? T.LITERAL : T.ERROR,
+        closed ? undefined : (quote === '"' ? 'Unterminated string literal' : 'Unterminated character literal'));
       continue;
     }
 
-    // Char literals
-    if (ch === "'") {
-      let val = "'";
-      i++;
-      while (i < code.length && code[i] !== "'") val += code[i++];
-      val += "'"; i++;
-      tokens.push({ num: num++, value: val, type: T.LITERAL });
+    // C-style integer and floating-point forms (hex, decimals, exponents, suffixes).
+    const numberMatch = source.slice(i).match(/^(?:0[xX][0-9a-fA-F]+[uUlL]*|(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?[fFlLuU]*)/);
+    if (numberMatch && (/\d/.test(ch) || (ch === '.' && /\d/.test(source[i + 1])))) {
+      const value = numberMatch[0];
+      emit(i, i + value.length, value, T.LITERAL);
+      i += value.length;
       continue;
     }
 
-    // Numeric literals
-    if (/[0-9]/.test(ch) || (ch === '.' && /[0-9]/.test(code[i+1]))) {
-      let val = '';
-      while (i < code.length && /[0-9.]/.test(code[i])) val += code[i++];
-      tokens.push({ num: num++, value: val, type: T.LITERAL });
-      continue;
-    }
-
-    // Identifiers & keywords
     if (/[a-zA-Z_]/.test(ch)) {
-      let val = '';
-      while (i < code.length && /[a-zA-Z0-9_]/.test(code[i])) val += code[i++];
-      tokens.push({ num: num++, value: val, type: C_KEYWORDS.has(val) ? T.KEYWORD : T.IDENTIFIER });
+      const match = source.slice(i).match(/^[a-zA-Z_][a-zA-Z0-9_]*/)[0];
+      emit(i, i + match.length, match, C_KEYWORDS.has(match) ? T.KEYWORD : T.IDENTIFIER);
+      i += match.length;
       continue;
     }
 
-    // Multi-char operators
-    const two = code.slice(i, i+2);
-    if (['++','--','==','!=','<=','>=','&&','||','+=','-=','*=','/=','->'].includes(two)) {
-      tokens.push({ num: num++, value: two, type: T.OPERATOR });
-      i += 2; continue;
+    const operator = operators.find(op => source.startsWith(op, i));
+    if (operator) {
+      emit(i, i + operator.length, operator, T.OPERATOR);
+      i += operator.length;
+      continue;
     }
 
-    // Single-char operators
     if (['+','-','*','/','%','=','<','>','!','&','|','^','~'].includes(ch)) {
-      tokens.push({ num: num++, value: ch, type: T.OPERATOR });
-      i++; continue;
+      emit(i, i + 1, ch, T.OPERATOR);
+      i++;
+      continue;
     }
 
-    // Delimiters
     if (['(',')',']','['].includes(ch)) {
-      tokens.push({ num: num++, value: ch, type: T.DELIMITER });
-      i++; continue;
+      emit(i, i + 1, ch, T.DELIMITER);
+      i++;
+      continue;
     }
 
-    // Symbols
     if (['{','}',';',',','.'].includes(ch)) {
-      tokens.push({ num: num++, value: ch, type: T.SYMBOL });
-      i++; continue;
+      emit(i, i + 1, ch, T.SYMBOL);
+      i++;
+      continue;
     }
 
-    // Unknown
-    tokens.push({ num: num++, value: ch, type: T.SYMBOL });
+    emit(i, i + 1, ch, T.ERROR, 'Unrecognised character');
     i++;
   }
 
@@ -1171,7 +1201,16 @@ function truncate(str, maxLen) {
 }
 
 /* ── Auto-load first sample on DOMContentLoaded ── */
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('sampleSelect').value = 'prog1';
-  loadSample();
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const sampleSelect = document.getElementById('sampleSelect');
+    if (!sampleSelect) return;
+    sampleSelect.value = 'prog1';
+    loadSample();
+  });
+}
+
+// Expose the compiler core to Node's built-in test runner without changing browser use.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { tokenize, parseToAST, buildCFG, buildDFG, buildCPG, extractVarUses, T };
+}
