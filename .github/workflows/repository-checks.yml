@@ -2,9 +2,9 @@ name: Compiler quality checks
 
 on:
   push:
-    branches: [master, 'feat/**', 'test/**']
+    branches: [master, 'feat/**', 'test/**', 'chore/**']
   pull_request:
-    branches: [master, 'feat/**', 'test/**']
+    branches: [master, 'feat/**', 'test/**', 'chore/**']
 
 jobs:
   test:
@@ -18,5 +18,7 @@ jobs:
           node-version: 22
       - name: Run compiler-core tests
         run: npm test
+      - name: Check repository integration
+        run: npm run check:repo
       - name: Check JavaScript syntax
         run: node --check app.js
