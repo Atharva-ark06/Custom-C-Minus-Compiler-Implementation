@@ -459,6 +459,10 @@ function parseToAST(tokens) {
 function buildCFG(ast) {
   let idCounter = 0;
   function makeNode(label, type) { return { id: idCounter++, label, type, successors: [] }; }
+  function connect(from, to) {
+    // Return nodes terminate their control-flow path.
+    if (from && to && from.type !== 'return' && !from.successors.includes(to.id)) from.successors.push(to.id);
+  }
 
   const startNode = makeNode('START', 'start');
   const endNode   = makeNode('END',   'end');
@@ -475,48 +479,48 @@ function buildCFG(ast) {
     switch (stmt.kind) {
       case 'Declaration': {
         const n = makeNode(`Declare: ${stmt.dataType} ${stmt.name}${stmt.init ? ` = ${stmt.init}` : ''}`, 'stmt');
-        allNodes.push(n); prev.successors.push(n.id); return n;
+        allNodes.push(n); connect(prev, n); return n;
       }
       case 'Assign': {
         const op = stmt.op || '=';
         const label = ['++','--'].includes(op) ? `${stmt.name}${op}` : `${stmt.name} ${op} ${stmt.expr}`;
         const n = makeNode(`Assign: ${label}`, 'stmt');
-        allNodes.push(n); prev.successors.push(n.id); return n;
+        allNodes.push(n); connect(prev, n); return n;
       }
       case 'Call': {
         const n = makeNode(`Call: ${stmt.name}(${stmt.args.join(', ')})`, 'call');
-        allNodes.push(n); prev.successors.push(n.id); return n;
+        allNodes.push(n); connect(prev, n); return n;
       }
       case 'Return': {
-        const n = makeNode(`Return: ${stmt.expr || ''}`, 'stmt');
-        allNodes.push(n); prev.successors.push(n.id); return n;
+        const n = makeNode(`Return: ${stmt.expr || ''}`, 'return');
+        allNodes.push(n); connect(prev, n); return n;
       }
       case 'If': {
         const condN = makeNode(`if (${stmt.cond})`, 'cond');
-        allNodes.push(condN); prev.successors.push(condN.id);
+        allNodes.push(condN); connect(prev, condN);
         const thenEntry = makeNode('then', 'stmt'); allNodes.push(thenEntry); condN.successors.push(thenEntry.id);
         const thenExit  = processStatements(stmt.thenBranch || [], thenEntry);
-        const merge     = makeNode('merge', 'stmt'); allNodes.push(merge); thenExit.successors.push(merge.id);
+        const merge     = makeNode('merge', 'stmt'); allNodes.push(merge); connect(thenExit, merge);
         if (stmt.elseBranch) {
           const elseEntry = makeNode('else', 'stmt'); allNodes.push(elseEntry); condN.successors.push(elseEntry.id);
-          const elseExit  = processStatements(stmt.elseBranch, elseEntry); elseExit.successors.push(merge.id);
+          const elseExit  = processStatements(stmt.elseBranch, elseEntry); connect(elseExit, merge);
         } else { condN.successors.push(merge.id); }
         return merge;
       }
       case 'For': {
-        const initN = makeNode(`for init: ${stmt.init}`, 'stmt'); allNodes.push(initN); prev.successors.push(initN.id);
+        const initN = makeNode(`for init: ${stmt.init}`, 'stmt'); allNodes.push(initN); connect(prev, initN);
         const condN = makeNode(`for cond: ${stmt.cond}`, 'loop'); allNodes.push(condN); initN.successors.push(condN.id);
         const bodyEntry = makeNode('loop body', 'stmt'); allNodes.push(bodyEntry); condN.successors.push(bodyEntry.id);
         const bodyExit  = processStatements(stmt.body || [], bodyEntry);
         const updN      = makeNode(`for upd: ${stmt.upd}`, 'stmt'); allNodes.push(updN);
-        bodyExit.successors.push(updN.id); updN.successors.push(condN.id); // back edge
+        connect(bodyExit, updN); updN.successors.push(condN.id); // back edge
         const afterLoop = makeNode('after loop', 'stmt'); allNodes.push(afterLoop); condN.successors.push(afterLoop.id);
         return afterLoop;
       }
       case 'While': {
-        const condN = makeNode(`while (${stmt.cond})`, 'loop'); allNodes.push(condN); prev.successors.push(condN.id);
+        const condN = makeNode(`while (${stmt.cond})`, 'loop'); allNodes.push(condN); connect(prev, condN);
         const bodyEntry = makeNode('loop body', 'stmt'); allNodes.push(bodyEntry); condN.successors.push(bodyEntry.id);
-        const bodyExit  = processStatements(stmt.body || [], bodyEntry); bodyExit.successors.push(condN.id);
+        const bodyExit  = processStatements(stmt.body || [], bodyEntry); connect(bodyExit, condN);
         const afterLoop = makeNode('after while', 'stmt'); allNodes.push(afterLoop); condN.successors.push(afterLoop.id);
         return afterLoop;
       }
@@ -528,7 +532,7 @@ function buildCFG(ast) {
     const fnEntry = makeNode(`fn: ${fn.name}()`, 'stmt');
     allNodes.push(fnEntry); startNode.successors.push(fnEntry.id);
     const fnExit = processStatements(fn.body || [], fnEntry);
-    fnExit.successors.push(endNode.id);
+    connect(fnExit, endNode);
   }
   if (ast.functions.length === 0) startNode.successors.push(endNode.id);
   allNodes.push(endNode);
