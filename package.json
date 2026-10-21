@@ -4,7 +4,8 @@
   "private": true,
   "description": "Browser-based C program structural visualizer and educational compiler-core tests",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "check:repo": "node scripts/check-repository.js"
   },
   "engines": {
     "node": ">=20"
