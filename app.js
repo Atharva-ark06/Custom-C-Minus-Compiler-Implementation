@@ -1210,7 +1210,104 @@ if (typeof document !== 'undefined') {
   });
 }
 
+
+/**
+ * Lightweight semantic checks over the structural AST.
+ * This is intentionally not a full C type checker: expressions are stored as strings.
+ */
+function analyzeSemantics(ast) {
+  const diagnostics = [];
+  const functionNames = new Set((ast.functions || []).map(fn => fn.name));
+  const keywords = C_KEYWORDS;
+  function emit(severity, code, message, name) {
+    diagnostics.push({ severity, code, message, ...(name ? { name } : {}) });
+  }
+  function cloneScopes(scopes) {
+    return scopes.map(scope => new Map([...scope].map(([name, info]) => [name, { ...info }])));
+  }
+  function lookup(scopes, name) {
+    for (let i = scopes.length - 1; i >= 0; i--) {
+      if (scopes[i].has(name)) return scopes[i].get(name);
+    }
+    return null;
+  }
+  function checkExpression(expr, scopes) {
+    for (const name of extractVarUses(expr || '')) {
+      if (functionNames.has(name) || keywords.has(name)) continue;
+      const info = lookup(scopes, name);
+      if (!info) emit('error', 'E_UNDECLARED', 'Identifier "' + name + '" is used before it is declared.', name);
+      else if (!info.initialized) emit('warning', 'W_UNINITIALIZED', 'Variable "' + name + '" may be used before initialization.', name);
+    }
+  }
+  function analyzeStatements(stmts, scopes) {
+    for (const stmt of stmts || []) {
+      if (!stmt) continue;
+      switch (stmt.kind) {
+        case 'Declaration': {
+          const current = scopes[scopes.length - 1];
+          if (current.has(stmt.name)) {
+            emit('error', 'E_DUPLICATE_DECLARATION', 'Variable "' + stmt.name + '" is declared more than once in the same scope.', stmt.name);
+          } else {
+            current.set(stmt.name, { initialized: false, dataType: stmt.dataType });
+          }
+          if (stmt.init) {
+            checkExpression(stmt.init, scopes);
+            const info = lookup(scopes, stmt.name);
+            if (info) info.initialized = true;
+          }
+          break;
+        }
+        case 'Assign': {
+          const info = lookup(scopes, stmt.name);
+          if (!info) emit('error', 'E_UNDECLARED', 'Assignment to undeclared variable "' + stmt.name + '".', stmt.name);
+          checkExpression(stmt.expr || '', scopes);
+          if (info) info.initialized = true;
+          break;
+        }
+        case 'Call':
+          stmt.args.forEach(arg => checkExpression(arg, scopes));
+          break;
+        case 'Return':
+          checkExpression(stmt.expr || '', scopes);
+          break;
+        case 'If': {
+          checkExpression(stmt.cond, scopes);
+          const before = cloneScopes(scopes);
+          const thenScopes = cloneScopes(before);
+          thenScopes.push(new Map());
+          analyzeStatements(stmt.thenBranch, thenScopes);
+          const elseScopes = cloneScopes(before);
+          elseScopes.push(new Map());
+          if (stmt.elseBranch) analyzeStatements(stmt.elseBranch, elseScopes);
+          for (let i = 0; i < scopes.length; i++) {
+            for (const [name, info] of scopes[i]) {
+              const thenInfo = lookup(thenScopes.slice(0, i + 1), name);
+              const elseInfo = lookup(elseScopes.slice(0, i + 1), name);
+              info.initialized = !!(thenInfo && elseInfo && thenInfo.initialized && elseInfo.initialized);
+            }
+          }
+          break;
+        }
+        case 'While':
+        case 'For': {
+          if (stmt.kind === 'For') checkExpression(stmt.init, scopes);
+          checkExpression(stmt.cond, scopes);
+          const loopScopes = cloneScopes(scopes);
+          loopScopes.push(new Map());
+          analyzeStatements(stmt.body, loopScopes);
+          if (stmt.kind === 'For') checkExpression(stmt.upd, loopScopes);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  }
+  for (const fn of ast.functions || []) analyzeStatements(fn.body, [new Map()]);
+  return diagnostics;
+}
+
 // Expose the compiler core to Node's built-in test runner without changing browser use.
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { tokenize, parseToAST, buildCFG, buildDFG, buildCPG, extractVarUses, T };
+  module.exports = { tokenize, parseToAST, buildCFG, buildDFG, buildCPG, extractVarUses, analyzeSemantics, T };
 }
