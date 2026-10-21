@@ -1,6 +1,4 @@
-# Compiler Quality Checks
-
-name: Python quality checks
+name: Compiler quality checks
 
 on:
   push:
@@ -9,14 +7,16 @@ on:
     branches: [master]
 
 jobs:
-  tests:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.12'
-      - name: Report repository contents
-        run: |
-          python --version
-          find . -maxdepth 3 -type f -not -path './.git/*' | sort
+          node-version: 22
+      - name: Run compiler-core tests
+        run: npm test
+      - name: Check JavaScript syntax
+        run: node --check app.js
