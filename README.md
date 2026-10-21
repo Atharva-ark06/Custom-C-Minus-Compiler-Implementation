@@ -1,4 +1,8 @@
-# 🚀 Multi-Phase Compiler ATC-Assignment-02
+# Custom C-Minus Compiler Implementation
+
+> Educational compiler-construction project. See the implementation files and examples in this repository to determine which phases are currently executable; architecture diagrams and future-scope notes below describe concepts, not a guarantee that every phase is implemented.
+
+[Engineering roadmap](docs/engineering-roadmap.md) · [Compiler concepts](#-compiler-phases)
 
 A functional, multi-phase compiler designed and implemented from scratch to demonstrate the core principles of compiler construction. The project translates a custom high-level language (or a defined subset of C/Java) into **machine-independent intermediate code**, while enforcing lexical, syntactic, and semantic rules.
 
@@ -344,3 +348,14 @@ Intermediate Representation
 ## 👨‍💻 Project
 
 This project demonstrates the complete pipeline of a compiler, from **source-code tokenization to intermediate code generation**, providing practical implementation of concepts from **Formal Languages, Automata Theory, Parsing, Symbol Tables, Semantic Analysis, and Code Generation**.
+
+
+## Contributor workflow
+
+1. Start from the latest `master` and create a focused feature branch.
+2. Make a small, coherent change and include a representative example or test where practical.
+3. Run the relevant checks locally and include the exact commands and results in the pull request.
+4. Update screenshots and documentation when the interface or compiler output changes.
+5. Keep supported features, planned features, and known limitations clearly distinguished.
+
+See the [engineering roadmap](docs/engineering-roadmap.md) for suggested milestones. The repository workflow currently performs a basic repository-structure check; it is not a substitute for language-specific unit tests or an end-to-end compiler test.
