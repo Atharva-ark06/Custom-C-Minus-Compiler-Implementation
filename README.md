@@ -1,361 +1,199 @@
-# Custom C-Minus Compiler Implementation
+# C-Viz — Custom C-Minus Compiler & Program Structure Visualizer
 
-> Educational compiler-construction project. See the implementation files and examples in this repository to determine which phases are currently executable; architecture diagrams and future-scope notes below describe concepts, not a guarantee that every phase is implemented.
+[![Compiler quality checks](https://github.com/Atharva-ark06/Custom-C-Minus-Compiler-Implementation/actions/workflows/repository-checks.yml/badge.svg?branch=master)](https://github.com/Atharva-ark06/Custom-C-Minus-Compiler-Implementation/actions/workflows/repository-checks.yml)
+![JavaScript](https://img.shields.io/badge/JavaScript-ES6%2B-f7df1e?logo=javascript&logoColor=222)
+![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)
+![Project](https://img.shields.io/badge/Project-Educational-blue)
 
-[Engineering roadmap](docs/engineering-roadmap.md) · [Compiler concepts](#-compiler-phases)
+**C-Viz** is a browser-based educational tool for exploring the structure of C-like programs. It tokenizes source code, builds a lightweight structural representation, and visualizes control-flow, data-flow, and code-property relationships. The project also includes a conservative semantic-diagnostics pass and automated regression tests.
 
-A functional, multi-phase compiler designed and implemented from scratch to demonstrate the core principles of compiler construction. The project translates a custom high-level language (or a defined subset of C/Java) into **machine-independent intermediate code**, while enforcing lexical, syntactic, and semantic rules.
+> **Scope:** This is a learning-oriented structural visualizer and compiler-core prototype, not a production C compiler. It does not implement the complete C grammar, a full static type system, machine-code generation, or a complete optimization pipeline. The parser and analyses support a subset of constructs and should be treated accordingly.
 
---- 
-   
-## 📌 Project Overview  
+## Contents
 
-The compiler follows a traditional compiler architecture consisting of multiple phases. Each phase processes the output of the previous stage and performs a specific transformation or validation.
+- [Highlights](#highlights)
+- [How it works](#how-it-works)
+- [Current capabilities](#current-capabilities)
+- [Technology stack](#technology-stack)
+- [Run locally](#run-locally)
+- [Run tests](#run-tests)
+- [Repository layout](#repository-layout)
+- [Known limitations](#known-limitations)
+- [Development roadmap](#development-roadmap)
+- [Contributing](#contributing)
 
-```text
-┌─────────────────┐
-│   Source Code   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Lexer / Scanner │  ← Regex / Flex
-└────────┬────────┘
-         │ Tokens
-         ▼ 
-┌─────────────────┐
-│ Parser          │  ← CFG / Bison
-└────────┬────────┘
-         │ Parse Tree
-         ▼
-┌─────────────────┐
-│ AST Generation  │
-└────────┬────────┘
-         │ AST
-         ▼
-┌─────────────────┐
-│ Type Checker    │
-└────────┬────────┘
-         │ Validated AST
-         ▼
-┌─────────────────┐
-│ TAC Generator   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Intermediate    │
-│ Representation  │
-└─────────────────┘
-```
+## Highlights
 
-## Visuals 
+- **Lexer:** recognizes supported keywords, identifiers, numeric and quoted literals, operators, comments, and invalid input.
+- **Source diagnostics:** token records carry line, column, and source-offset information; malformed literals/comments and unknown characters can produce explicit error tokens.
+- **Structural parsing:** converts supported source constructs into an AST-like representation for functions, declarations, assignments, calls, returns, conditionals, and loops.
+- **Semantic diagnostics:** flags undeclared identifiers, duplicate declarations in the same scope, and potentially uninitialized reads.
+- **Control-flow graph (CFG):** represents branches and loops, including loop back-edges; return nodes terminate their outgoing control-flow path.
+- **Data-flow graph (DFG):** represents supported definition/use relationships, including reads from prior definitions and return-expression uses.
+- **Code property graph (CPG):** combines structural and graph information for exploration.
+- **Browser UI:** displays program-analysis views without requiring a separate frontend build step.
+- **Regression tests and CI:** uses Node's built-in test runner and GitHub Actions to catch logic regressions.
+
+## How it works
+
+The current workflow is an educational analysis pipeline rather than a complete compile-to-machine-code pipeline.
+
+~~~text
+       C-like source input
+                |
+                v
+       Lexer / Token stream
+                |
+                v
+      Structural parser / AST
+         /       |       \
+        v        v        v
+   Semantic     CFG      DFG
+ diagnostics     \        /
+                   v
+             Combined CPG
+                |
+                v
+          Browser visualizer
+~~~
+
+## Current capabilities
+
+| Component | What is currently covered |
+|---|---|
+| Lexical analysis | Supported keywords, identifiers, quoted literals and escapes, numeric forms, operators, comments, source positions, and error tokens |
+| Structural parser | Supported declarations, assignments, function-like constructs, calls, returns, if/else, while, and for structures |
+| Semantic diagnostics | Undeclared identifiers, same-scope duplicate declarations, potentially uninitialized reads, and conservative initialization checks around branches/loops |
+| CFG | Statement nodes, branch/loop structure, loop back-edges, and return termination |
+| DFG | Definition/use relationships for supported expressions, assignment dependencies, compound updates, increments, and return expressions |
+| CPG | Combined structural/flow information for visual exploration |
+| Quality checks | Node test suite plus JavaScript syntax validation in GitHub Actions |
+
+The behavior is intentionally scoped. A successful analysis does **not** mean arbitrary C source has been parsed or type-checked according to the C standard.
+
+## Technology stack
+
+- **Frontend:** HTML, CSS, browser JavaScript
+- **Compiler core:** JavaScript
+- **Test runner:** Node.js built-in node:test
+- **Continuous integration:** GitHub Actions
+- **Runtime requirement:** Node.js 20 or newer for tests
+
+No third-party npm dependencies are required by the current test setup.
+
+## Run locally
+
+1. Clone the repository:
+
+   ~~~bash
+   git clone https://github.com/Atharva-ark06/Custom-C-Minus-Compiler-Implementation.git
+   cd Custom-C-Minus-Compiler-Implementation
+   ~~~
+
+2. Open index.html in a modern browser to use the visualizer.
+
+3. To run the compiler-core tests, install [Node.js 20+](https://nodejs.org/) and run:
+
+   ~~~bash
+   npm test
+   ~~~
+
+4. To check JavaScript syntax separately:
+
+   ~~~bash
+   node --check app.js
+   ~~~
+
+The same test and syntax checks run in GitHub Actions for pushes and pull requests targeting the configured branches.
+
+## Run tests
+
+Run all automated tests:
+
+~~~bash
+npm test
+~~~
+
+The suite is organized by concern:
+
+- **tests/compiler-core.test.js** — core lexer/parser/graph behavior
+- **tests/compiler-regression.test.js** — parser and graph regression cases
+- **tests/control-flow-return.test.js** — return termination and CFG edge behavior
+- **tests/data-flow-definition-edges.test.js** — definition/use edge correctness
+- **tests/semantic-analysis.test.js** — semantic diagnostics and initialization-flow behavior
+
+Tests document supported behavior and prevent known regressions. They are not a claim of full standards conformance.
+
+## Visualizer screenshots
 
 <p align="center">
-  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029072/Screenshot_2026-08-30_001419.png" width="95%" alt="XYZ Insta Login Screen">
-</p> 
-
-## Results and outputs 
-
-## 1.
-<p align="center">
-  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029127/Screenshot_2026-08-30_001509.png" width="95%" alt="XYZ Insta Login Screen">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029072/Screenshot_2026-08-30_001419.png" width="95%" alt="C-Viz browser interface screenshot" />
 </p>
 
-## 2.
 <p align="center">
-  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029139/Screenshot_2026-08-30_001456.png" width="95%" alt="XYZ Insta Login Screen">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029127/Screenshot_2026-08-30_001509.png" width="95%" alt="C-Viz program analysis output screenshot" />
 </p>
 
-
-## 🏗️ Compiler Phases
-
-### 1. 🔤 Lexical Analysis
-
-The **Lexer** converts the raw source code into meaningful tokens.
-
-**Responsibilities:**
-
-* Identify keywords and identifiers
-* Recognize literals and operators
-* Remove whitespace and comments
-* Track line and column numbers
-* Detect invalid characters and lexical errors
-
-**Technologies:**
-
-* Regular Expressions
-* Lex / Flex
-* PLY *(optional)*
-
----
-
-### 2. 🌳 Syntax Analysis
-
-The **Parser** validates the token stream against the language's **Context-Free Grammar (CFG)**.
-
-**Responsibilities:**
-
-* Validate program structure
-* Build a Parse Tree or AST
-* Handle operator precedence
-* Detect syntax errors
-* Provide meaningful error messages
-
-**Technologies:**
-
-* CFG
-* Yacc / Bison
-* ANTLR
-* Recursive Descent Parser
-
----
-
-### 3. 🧠 Abstract Syntax Tree (AST)
-
-The AST provides a simplified structural representation of the source program.
-
-```text
-        Assignment
-        /        \
-     Variable    Expression
-       x        /          \
-             Variable      Number
-                y            10
-```
-
-The AST removes unnecessary syntactic details and provides a clean structure for semantic analysis and code generation.
-
----
-
-### 4. 🔍 Semantic Analysis
-
-The **Semantic Analyzer** verifies whether the program follows the language's semantic rules.
-
-**Key responsibilities:**
-
-* Type checking
-* Variable declaration checking
-* Scope management
-* Symbol table management
-* Detecting undeclared variables
-* Detecting incompatible operations
-
-For example:
-
-```text
-int x;
-string name;
-
-x = name;   ❌ Type Error
-```
-
----
-
-## 📚 Symbol Table
-
-The compiler maintains a **Symbol Table** to store information about identifiers.
-
-Typical entries include:
-
-| Identifier | Type     | Scope  | Other Information |
-| ---------- | -------- | ------ | ----------------- |
-| `x`        | `int`    | Local  | Variable          |
-| `name`     | `string` | Global | Variable          |
-| `sum`      | `int`    | Local  | Function          |
-
-The symbol table supports **nested scopes**, allowing the compiler to distinguish between global and local variables.
-
----
-
-## ⚙️ Intermediate Code Generation
-
-After semantic validation, the compiler converts the AST into **Three-Address Code (TAC)** or another intermediate representation.
-
-Example source:
-
-```text
-x = a + b * c;
-```
-
-TAC:
-
-```text
-t1 = b * c
-t2 = a + t1
-x  = t2
-```
-
-This machine-independent representation makes the compiler easier to optimize and eventually translate into target-specific code.
-
----
-
-## 🔀 Control Flow Translation
-
-The compiler supports translation of control-flow structures such as:
-
-* `if`
-* `if-else`
-* `while`
-* Nested conditionals
-* Loops
-
-Example:
-
-```text
-if (x > 10)
-    y = x + 1;
-else
-    y = x - 1;
-```
-
-Possible TAC:
-
-```text
-if x > 10 goto L1
-goto L2
-
-L1:
-t1 = x + 1
-y = t1
-goto L3
-
-L2:
-t2 = x - 1
-y = t2
-
-L3:
-```
-
----
-
-## 🛠️ Technology Stack
-
-### Implementation Languages
-
-Choose one:
-
-* C
-* C++
-* Java
-* Python
-
-### Compiler Tools
-
-| Tool                  | Purpose                   |
-| --------------------- | ------------------------- |
-| **Lex / Flex**        | Lexical Analysis          |
-| **Yacc / Bison**      | Syntax Analysis           |
-| **ANTLR**             | Lexer & Parser Generation |
-| **PLY**               | Python Lex-Yacc           |
-| **Recursive Descent** | Manual Parsing            |
-
----
-
-## ✨ Key Features
-
-* 🔤 Regex-based lexical analysis
-* 🌳 CFG-based syntax analysis
-* 🧩 Abstract Syntax Tree generation
-* 🔍 Static semantic analysis
-* 📖 Dynamic symbol table
-* 🔐 Nested scope management
-* ⚠️ Syntax and semantic error reporting
-* 📍 Line and column-level error detection
-* 🔄 Three-Address Code generation
-* 🔀 Conditional and loop translation
-* ⚡ Machine-independent intermediate representation
-
----
-
-## 🎯 Project Objectives
-
-1. Understand the architecture of modern compilers.
-2. Implement lexical, syntactic, and semantic analysis.
-3. Design and manage symbol tables and scopes.
-4. Generate an intermediate representation from an AST.
-5. Implement structured error detection and reporting.
-6. Demonstrate how high-level source code is progressively transformed into executable representations.
-
----
-
-## 📂 Suggested Project Structure
-
-```text
-compiler-project/
-│
-├── src/
-│   ├── lexer/
-│   ├── parser/
-│   ├── ast/
-│   ├── semantic/
-│   ├── symbol_table/
-│   └── codegen/
-│
+<p align="center">
+  <img src="https://res.cloudinary.com/wpop4xyo/image/upload/v1788029139/Screenshot_2026-08-30_001456.png" width="95%" alt="C-Viz structural visualization screenshot" />
+</p>
+
+## Repository layout
+
+~~~text
+.
+├── app.js                              # Browser logic and compiler-core functions
+├── index.html                          # Visualizer interface
+├── style.css                           # Interface styles
+├── package.json                        # Node test command and runtime requirement
 ├── tests/
-│   ├── valid/
-│   └── invalid/
-│
-├── examples/
-│   └── sample_program.txt
-│
+│   ├── compiler-core.test.js
+│   ├── compiler-regression.test.js
+│   ├── control-flow-return.test.js
+│   ├── data-flow-definition-edges.test.js
+│   └── semantic-analysis.test.js
 ├── docs/
-│
-├── README.md
-└── requirements.txt
-```
+│   └── engineering-roadmap.md          # Planned improvements and milestones
+└── .github/
+    └── workflows/
+        └── repository-checks.yml       # Automated test and syntax checks
+~~~
+
+## Known limitations
+
+- The parser is structural and supports only a subset of C-like syntax; it is not a standards-compliant C parser.
+- Expressions are represented in a lightweight form rather than a complete precedence-aware expression AST.
+- Semantic analysis is conservative and is not a complete type checker or a complete implementation of C scope and lifetime rules.
+- Data-flow and control-flow analyses are educational approximations; complex path-sensitive cases may not be modeled precisely.
+- The project does not currently generate executable machine code.
+- A clean test run verifies the covered cases only; it does not prove correctness for every possible input.
+
+These boundaries are documented so new features can be added incrementally without overstating current behavior.
+
+## Development roadmap
+
+The next useful milestones are:
+
+1. Improve expression parsing, precedence, and associativity in the AST.
+2. Add source spans and clearer parser diagnostics.
+3. Strengthen nested-scope and function-parameter handling in semantic analysis.
+4. Improve CFG/DFG accuracy for nested and path-sensitive constructs.
+5. Add end-to-end sample programs and broader malformed-input tests.
+6. Keep the UI, screenshots, documentation, and tested capabilities aligned.
+
+See [docs/engineering-roadmap.md](docs/engineering-roadmap.md) for the detailed plan.
+
+## Contributing
+
+1. Start from the latest master and create a focused branch.
+2. Make a small, reviewable change.
+3. Add or update regression tests for behavior changes.
+4. Run npm test and node --check app.js.
+5. Update this README when capabilities, commands, UI, or limitations change.
+6. Open a pull request describing the change and validation performed.
+
+Please avoid empty commits made only to increase commit counts; prioritize meaningful, tested improvements.
 
 ---
 
-## 🧪 Example Compilation Flow
-
-```text
-Source Program
-      ↓
-Lexical Analysis
-      ↓
-Token Stream
-      ↓
-Syntax Analysis
-      ↓
-Parse Tree / AST
-      ↓
-Semantic Analysis
-      ↓
-Validated AST
-      ↓
-Three-Address Code
-      ↓
-Intermediate Representation
-```
-
----
-
-## 📈 Future Scope
-
-* Code optimization
-* Dead-code elimination
-* Constant folding
-* Register allocation
-* Machine-code generation
-* Assembly generation
-* Function and procedure support
-* Improved error recovery
-* Interactive compiler/debugging interface
-
----
-
-## 👨‍💻 Project
-
-This project demonstrates the complete pipeline of a compiler, from **source-code tokenization to intermediate code generation**, providing practical implementation of concepts from **Formal Languages, Automata Theory, Parsing, Symbol Tables, Semantic Analysis, and Code Generation**.
-
-
-## Contributor workflow
-
-1. Start from the latest `master` and create a focused feature branch.
-2. Make a small, coherent change and include a representative example or test where practical.
-3. Run the relevant checks locally and include the exact commands and results in the pull request.
-4. Update screenshots and documentation when the interface or compiler output changes.
-5. Keep supported features, planned features, and known limitations clearly distinguished.
-
-See the [engineering roadmap](docs/engineering-roadmap.md) for suggested milestones. The repository workflow currently performs a basic repository-structure check; it is not a substitute for language-specific unit tests or an end-to-end compiler test.
+**Purpose:** make compiler concepts visible and testable while steadily improving the correctness of a small educational compiler core.
