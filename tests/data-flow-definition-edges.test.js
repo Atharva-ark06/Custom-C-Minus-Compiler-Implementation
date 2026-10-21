@@ -32,8 +32,10 @@ test('declaration initializer uses the earlier definition instead of itself', ()
   const dfg = dfgFor('int main() { int x = 1; int y = x + 2; return y; }');
   const xDef = dfg.nodes.find(node => node.kind === 'def' && node.varName === 'x');
   const yDef = dfg.nodes.find(node => node.kind === 'def' && node.varName === 'y');
-  assert.ok(dfg.edges.some(edge => edge.from === xDef.id && edge.to !== xDef.id && edge.label === '→'));
-  assert.ok(dfg.edges.some(edge => edge.to === yDef.id && edge.label === '→'));
+  const xUse = dfg.nodes.find(node => node.kind === 'use' && node.label === 'USE x in y');
+  assert.ok(xUse);
+  assert.ok(dfg.edges.some(edge => edge.from === xDef.id && edge.to === xUse.id && edge.label === 'x'));
+  assert.ok(dfg.edges.some(edge => edge.from === xUse.id && edge.to === yDef.id && edge.label === '→'));
 });
 
 test('return expressions create data-flow use nodes', () => {
