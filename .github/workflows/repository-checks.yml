@@ -2,9 +2,9 @@ name: Compiler quality checks
 
 on:
   push:
-    branches: [master, 'feat/**']
+    branches: [master, 'feat/**', 'test/**']
   pull_request:
-    branches: [master]
+    branches: [master, 'feat/**', 'test/**']
 
 jobs:
   test:
