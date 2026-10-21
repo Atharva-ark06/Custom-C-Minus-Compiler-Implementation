@@ -546,56 +546,75 @@ function buildCFG(ast) {
 function buildDFG(ast) {
   const nodes = [], edges = [], varDefs = {};
   let id = 0;
-  function makeNode(label, kind, varName) { const n = { id: id++, label, kind, varName }; nodes.push(n); return n; }
-
-  function processStmts(stmts) { for (const s of stmts) { if (s) processStmt(s); } }
-
+  function makeNode(label, kind, varName) {
+    const n = { id: id++, label, kind, varName };
+    nodes.push(n);
+    return n;
+  }
+  function addUseEdges(expr, targetId, targetLabel) {
+    extractVarUses(expr || '').forEach(v => {
+      if (varDefs[v] !== undefined) {
+        const u = makeNode('USE ' + v + ' in ' + targetLabel, 'use', v);
+        edges.push({ from: varDefs[v], to: u.id, label: v });
+        if (targetId !== null && targetId !== undefined) edges.push({ from: u.id, to: targetId, label: '→' });
+      }
+    });
+  }
+  function processStmts(stmts) {
+    for (const s of stmts || []) if (s) processStmt(s);
+  }
   function processStmt(stmt) {
     switch (stmt.kind) {
       case 'Declaration': {
-        const n = makeNode(`DEF ${stmt.name}${stmt.init ? ` = ${stmt.init}` : ''}`, 'def', stmt.name);
+        const n = makeNode('DEF ' + stmt.name + (stmt.init ? ' = ' + stmt.init : ''), 'def', stmt.name);
+        // Resolve initializer uses against the previous definitions before
+        // publishing this declaration as the current definition.
+        if (stmt.init) addUseEdges(stmt.init, n.id, stmt.name);
         varDefs[stmt.name] = n.id;
-        if (stmt.init) {
-          extractVarUses(stmt.init).forEach(v => {
-            if (varDefs[v] !== undefined) {
-              const u = makeNode(`USE ${v} in ${stmt.name}`, 'use', v);
-              edges.push({ from: varDefs[v], to: u.id, label: v });
-              edges.push({ from: u.id, to: n.id, label: '→' });
-            }
-          });
-        }
         break;
       }
       case 'Assign': {
-        const n = makeNode(`DEF ${stmt.name}`, 'def', stmt.name);
-        varDefs[stmt.name] = n.id;
-        extractVarUses(stmt.expr || '').forEach(v => {
+        const uses = new Set(extractVarUses(stmt.expr || ''));
+        if (stmt.op && stmt.op !== '=' && stmt.op !== '++' && stmt.op !== '--') uses.add(stmt.name);
+        if (stmt.op === '++' || stmt.op === '--') uses.add(stmt.name);
+        const n = makeNode('DEF ' + stmt.name, 'def', stmt.name);
+        // The right-hand side reads the previous definition, not this new one.
+        uses.forEach(v => {
           if (varDefs[v] !== undefined) edges.push({ from: varDefs[v], to: n.id, label: v });
         });
+        varDefs[stmt.name] = n.id;
         break;
       }
       case 'Call': {
-        const n = makeNode(`CALL ${stmt.name}(...)`, 'call', stmt.name);
-        stmt.args.forEach(a => extractVarUses(a).forEach(v => {
-          if (varDefs[v] !== undefined) edges.push({ from: varDefs[v], to: n.id, label: v });
-        }));
+        const n = makeNode('CALL ' + stmt.name + '(...)', 'call', stmt.name);
+        stmt.args.forEach(a => addUseEdges(a, n.id, stmt.name + ' call'));
+        break;
+      }
+      case 'Return': {
+        const n = makeNode('RETURN ' + (stmt.expr || ''), 'use', '');
+        addUseEdges(stmt.expr || '', n.id, 'return');
         break;
       }
       case 'If': {
-        const condN = makeNode(`COND: ${stmt.cond}`, 'cond', '');
-        extractVarUses(stmt.cond).forEach(v => {
-          if (varDefs[v] !== undefined) edges.push({ from: varDefs[v], to: condN.id, label: v });
-        });
-        processStmts(stmt.thenBranch || []); processStmts(stmt.elseBranch || []);
+        const condN = makeNode('COND: ' + stmt.cond, 'cond', '');
+        addUseEdges(stmt.cond, condN.id, 'condition');
+        processStmts(stmt.thenBranch || []);
+        processStmts(stmt.elseBranch || []);
         break;
       }
-      case 'For':   processStmts(stmt.body || []); break;
-      case 'While': processStmts(stmt.body || []); break;
-      default: break;
+      case 'For':
+        addUseEdges(stmt.cond, null, 'for condition');
+        processStmts(stmt.body || []);
+        break;
+      case 'While':
+        addUseEdges(stmt.cond, null, 'while condition');
+        processStmts(stmt.body || []);
+        break;
+      default:
+        break;
     }
   }
-
-  for (const fn of ast.functions) processStmts(fn.body || []);
+  for (const fn of ast.functions || []) processStmts(fn.body || []);
   return { nodes, edges };
 }
 
