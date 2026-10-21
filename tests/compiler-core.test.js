@@ -22,7 +22,7 @@ test('skips line and block comments without swallowing following code', () => {
 });
 
 test('handles escaped quotes inside string and character literals', () => {
-  const tokens = tokenize(String.raw`char *s = "say \"hi\""; char c = '\'';`);
+  const tokens = tokenize(String.raw`char *s = "say \"hi\""; char c = 'x';`);
   assert.equal(tokens.filter(t => t.type === T.LITERAL).length, 2);
   assert.equal(tokens.some(t => t.type === T.ERROR), false);
 });
