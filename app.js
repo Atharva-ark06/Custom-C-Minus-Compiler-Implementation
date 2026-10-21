@@ -244,7 +244,7 @@ function tokenize(code) {
       i++;
       let closed = false;
       while (i < source.length) {
-        if (source[i] === '\\\\') {
+        if (source[i] === '\\') {
           i += Math.min(2, source.length - i);
           continue;
         }
