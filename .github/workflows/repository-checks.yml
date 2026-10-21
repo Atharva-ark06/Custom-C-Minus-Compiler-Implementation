@@ -1,0 +1,22 @@
+# Compiler Quality Checks
+
+name: Python quality checks
+
+on:
+  push:
+    branches: [master, 'feat/**']
+  pull_request:
+    branches: [master]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Report repository contents
+        run: |
+          python --version
+          find . -maxdepth 3 -type f -not -path './.git/*' | sort
